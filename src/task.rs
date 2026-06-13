@@ -1,3 +1,4 @@
+use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -25,13 +26,15 @@ struct Task {
 
 impl Task {
     fn new(id: u32, title: String, priority: Priority, project: Option<String>) -> Task {
+        let today = Utc::now().format("%Y-%m-%d").to_string();
+
         Task {
             id,
             title,
             priority,
             status: Status::Todo,
             project,
-            created_at: String::from("2026-06-13"),
+            created_at: today,
         }
     }
 }
@@ -122,5 +125,24 @@ mod tests {
         assert_eq!(loaded.len(), 2);
         assert_eq!(loaded[0].title, "Task one");
         assert_eq!(loaded[1].project, Some(String::from("work")));
+    }
+
+    #[test]
+    fn new_task_is_created_with_today() {
+        use chrono::Local;
+
+        let task = Task::new(1, String::from("Test"), Priority::Medium, None);
+        let today = Local::now().format("%Y-%m-%d").to_string();
+
+        assert_eq!(task.created_at, today);
+    }
+
+    #[test]
+    fn created_at_is_valid_date_format() {
+        let task = Task::new(1, String::from("Tests"), Priority::Medium, None);
+
+        assert_eq!(task.created_at.len(), 10);
+        assert_eq!(&task.created_at[4..5], "-");
+        assert_eq!(&task.created_at[7..8], "-");
     }
 }
