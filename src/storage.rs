@@ -1,4 +1,4 @@
-use crate::task::Task;
+use crate::task::*;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -17,6 +17,18 @@ fn load_from(path: &Path) -> Result<Vec<Task>, Box<dyn std::error::Error>> {
     let tasks: Vec<Task> = serde_json::from_str(&contents)?;
 
     Ok(tasks)
+}
+
+fn save_to(path: &Path, tasks: &[Task]) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let pretty_json = serde_json::to_string_pretty(tasks)?;
+
+    fs::write(path, pretty_json)?;
+
+    Ok(())
 }
 
 pub fn load_tasks() -> Result<Vec<Task>, Box<dyn std::error::Error>> {
@@ -44,5 +56,34 @@ mod tests {
         let tasks = load_from(&path).unwrap();
 
         assert!(tasks.is_empty());
+    }
+
+    #[test]
+    fn save_then_load_round_trips() {
+        let path = temp_path();
+        let tasks = vec![Task::new(1, String::from("Tests"), Priority::High, None)];
+
+        save_to(&path, &tasks).unwrap();
+        let loaded = load_from(&path).unwrap();
+
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(loaded[0].title(), "Tests");
+        assert!(matches!(loaded[0].priority(), Priority::High));
+
+        let _ = std::fs::remove_file(&path); // cleanup
+    }
+
+    #[test]
+    fn saved_file_is_human_readable_json() {
+        let path = temp_path();
+        let tasks = vec![Task::new(1, String::from("Tests"), Priority::High, None)];
+
+        save_to(&path, &tasks).unwrap();
+        let contents = std::fs::read_to_string(&path).unwrap();
+
+        assert!(contents.contains('\n'));
+        assert!(contents.contains("\"title\""));
+
+        let _ = std::fs::remove_file(&path);
     }
 }
