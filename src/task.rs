@@ -1,21 +1,21 @@
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
-enum Priority {
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum Priority {
     Low,
     Medium,
     High,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-enum Status {
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum Status {
     Todo,
     Done,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Task {
+pub struct Task {
     id: u32,
     title: String,
     priority: Priority,
@@ -25,7 +25,7 @@ struct Task {
 }
 
 impl Task {
-    fn new(id: u32, title: String, priority: Priority, project: Option<String>) -> Task {
+    pub fn new(id: u32, title: String, priority: Priority, project: Option<String>) -> Task {
         let today = Utc::now().format("%Y-%m-%d").to_string();
 
         Task {
@@ -36,6 +36,32 @@ impl Task {
             project,
             created_at: today,
         }
+    }
+}
+
+impl Task {
+    pub fn id(&self) -> u32 {
+        self.id
+    }
+
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+
+    pub fn priority(&self) -> Priority {
+        self.priority
+    }
+
+    pub fn status(&self) -> Status {
+        self.status
+    }
+
+    pub fn project(&self) -> Option<&str> {
+        self.project.as_deref()
+    }
+
+    pub fn created_at(&self) -> &str {
+        &self.created_at
     }
 }
 
