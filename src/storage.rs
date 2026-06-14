@@ -43,7 +43,8 @@ mod tests {
     use std::path::PathBuf;
 
     fn temp_path() -> PathBuf {
-        std::env::temp_dir().join(format!("tsk_test_{}.json", std::process::id()))
+        let thread_id = std::thread::current().id();
+        std::env::temp_dir().join(format!("tsk_test_{:?}.json", thread_id))
     }
 
     #[test]
