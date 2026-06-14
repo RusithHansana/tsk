@@ -37,6 +37,12 @@ pub fn load_tasks() -> Result<Vec<Task>, Box<dyn std::error::Error>> {
     load_from(&path)
 }
 
+pub fn save_tasks(tasks: &[Task]) -> Result<(), Box<dyn std::error::Error>> {
+    let path = get_storage_path();
+
+    save_to(&path, tasks)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
