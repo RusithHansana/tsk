@@ -31,6 +31,10 @@ fn save_to(path: &Path, tasks: &[Task]) -> Result<(), Box<dyn std::error::Error>
     Ok(())
 }
 
+fn next_id(tasks: &[Task]) -> u32 {
+    tasks.iter().map(|t| t.id()).max().unwrap_or(0) + 1
+}
+
 pub fn load_tasks() -> Result<Vec<Task>, Box<dyn std::error::Error>> {
     let path = get_storage_path();
 
@@ -41,6 +45,10 @@ pub fn save_tasks(tasks: &[Task]) -> Result<(), Box<dyn std::error::Error>> {
     let path = get_storage_path();
 
     save_to(&path, tasks)
+}
+
+pub fn get_next_id(tasks: &[Task]) -> u32 {
+    next_id(tasks)
 }
 
 #[cfg(test)]
@@ -92,5 +100,28 @@ mod tests {
         assert!(contents.contains("\"title\""));
 
         let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn next_id_is_one_for_empty_list() {
+        let tasks: Vec<Task> = vec![];
+        assert_eq!(next_id(&tasks), 1)
+    }
+
+    #[test]
+    fn next_id_is_max_plus_one() {
+        let tasks = vec![
+            Task::new(1, String::from("A"), Priority::Medium, None),
+            Task::new(3, String::from("B"), Priority::Medium, None), // gap — 2 was deleted
+        ];
+
+        assert_eq!(next_id(&tasks), 4);
+    }
+
+    #[test]
+    fn next_id_after_single_task() {
+        let tasks = vec![Task::new(1, String::from("Only"), Priority::Medium, None)];
+
+        assert_eq!(next_id(&tasks), 2);
     }
 }
