@@ -31,10 +31,24 @@ fn save_to(path: &Path, tasks: &[Task]) -> Result<(), Box<dyn std::error::Error>
     Ok(())
 }
 
+fn next_id(tasks: &[Task]) -> u32 {
+    tasks.iter().map(|t| t.id()).max().unwrap_or(0) + 1
+}
+
 pub fn load_tasks() -> Result<Vec<Task>, Box<dyn std::error::Error>> {
     let path = get_storage_path();
 
     load_from(&path)
+}
+
+pub fn save_tasks(tasks: &[Task]) -> Result<(), Box<dyn std::error::Error>> {
+    let path = get_storage_path();
+
+    save_to(&path, tasks)
+}
+
+pub fn get_next_id(tasks: &[Task]) -> u32 {
+    next_id(tasks)
 }
 
 #[cfg(test)]
@@ -52,11 +66,22 @@ mod tests {
         let path = temp_path();
 
         // making sure that file will not exist
-        let _ = std::fs::remove_file(&path);
+        let _ = fs::remove_file(&path);
 
         let tasks = load_from(&path).unwrap();
 
         assert!(tasks.is_empty());
+    }
+
+    #[test]
+    fn load_returns_error_on_corrupt_json() {
+        let path = temp_path();
+        fs::write(&path, b"this is not json {{{{{").unwrap();
+
+        let result = load_from(&path);
+        assert!(result.is_err());
+
+        let _ = fs::remove_file(&path);
     }
 
     #[test]
@@ -71,7 +96,7 @@ mod tests {
         assert_eq!(loaded[0].title(), "Tests");
         assert!(matches!(loaded[0].priority(), Priority::High));
 
-        let _ = std::fs::remove_file(&path); // cleanup
+        let _ = fs::remove_file(&path); // cleanup
     }
 
     #[test]
@@ -85,6 +110,29 @@ mod tests {
         assert!(contents.contains('\n'));
         assert!(contents.contains("\"title\""));
 
-        let _ = std::fs::remove_file(&path);
+        let _ = fs::remove_file(&path);
+    }
+
+    #[test]
+    fn next_id_is_one_for_empty_list() {
+        let tasks: Vec<Task> = vec![];
+        assert_eq!(next_id(&tasks), 1)
+    }
+
+    #[test]
+    fn next_id_is_max_plus_one() {
+        let tasks = vec![
+            Task::new(1, String::from("A"), Priority::Medium, None),
+            Task::new(3, String::from("B"), Priority::Medium, None), // gap — 2 was deleted
+        ];
+
+        assert_eq!(next_id(&tasks), 4);
+    }
+
+    #[test]
+    fn next_id_after_single_task() {
+        let tasks = vec![Task::new(1, String::from("Only"), Priority::Medium, None)];
+
+        assert_eq!(next_id(&tasks), 2);
     }
 }
