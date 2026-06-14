@@ -66,11 +66,22 @@ mod tests {
         let path = temp_path();
 
         // making sure that file will not exist
-        let _ = std::fs::remove_file(&path);
+        let _ = fs::remove_file(&path);
 
         let tasks = load_from(&path).unwrap();
 
         assert!(tasks.is_empty());
+    }
+
+    #[test]
+    fn load_returns_error_on_corrupt_json() {
+        let path = temp_path();
+        fs::write(&path, b"this is not json {{{{{").unwrap();
+
+        let result = load_from(&path);
+        assert!(result.is_err());
+
+        let _ = fs::remove_file(&path);
     }
 
     #[test]
@@ -85,7 +96,7 @@ mod tests {
         assert_eq!(loaded[0].title(), "Tests");
         assert!(matches!(loaded[0].priority(), Priority::High));
 
-        let _ = std::fs::remove_file(&path); // cleanup
+        let _ = fs::remove_file(&path); // cleanup
     }
 
     #[test]
@@ -99,7 +110,7 @@ mod tests {
         assert!(contents.contains('\n'));
         assert!(contents.contains("\"title\""));
 
-        let _ = std::fs::remove_file(&path);
+        let _ = fs::remove_file(&path);
     }
 
     #[test]
