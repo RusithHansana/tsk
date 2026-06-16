@@ -1,3 +1,4 @@
+mod command;
 mod storage;
 mod task;
 fn main() {
