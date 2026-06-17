@@ -1,14 +1,14 @@
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Priority {
     Low,
     Medium,
     High,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Status {
     Todo,
     Done,
@@ -37,9 +37,7 @@ impl Task {
             created_at: today,
         }
     }
-}
 
-impl Task {
     pub fn id(&self) -> u32 {
         self.id
     }
@@ -54,6 +52,11 @@ impl Task {
 
     pub fn status(&self) -> Status {
         self.status
+    }
+
+    pub fn set_status(&mut self, status: Status) -> &mut Self {
+        self.status = status;
+        self
     }
 
     pub fn project(&self) -> Option<&str> {

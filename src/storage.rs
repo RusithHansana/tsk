@@ -54,7 +54,6 @@ pub fn get_next_id(tasks: &[Task]) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
 
     fn temp_path() -> PathBuf {
         let thread_id = std::thread::current().id();
