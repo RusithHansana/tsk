@@ -46,6 +46,17 @@ fn mark_done(tasks: &mut [Task], id: u32) -> Result<(), String> {
     Ok(())
 }
 
+fn delete_task(tasks: &mut Vec<Task>, id: u32) -> Result<(), String> {
+    let index = match tasks.iter().position(|t| t.id() == id) {
+        Some(i) => i,
+        None => return Err(format!("Could not find a task with the id: {id}")),
+    };
+
+    tasks.remove(index);
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -178,5 +189,36 @@ mod tests {
 
         assert!(matches!(tasks[1].status(), Status::Todo));
         assert!(matches!(tasks[2].status(), Status::Todo));
+    }
+
+    #[test]
+    fn delete_task_removes_it() {
+        let mut tasks = sample_tasks();
+
+        let result = delete_task(&mut tasks, 2);
+
+        assert!(result.is_ok());
+        assert_eq!(tasks.len(), 2);
+        assert_eq!(tasks[0].id(), 1);
+    }
+
+    #[test]
+    fn delete_task_returns_error_for_missing_id() {
+        let mut tasks = sample_tasks();
+
+        let result = delete_task(&mut tasks, 99);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn deleted_id_is_not_reused() {
+        let mut tasks = sample_tasks();
+        delete_task(&mut tasks, 3).unwrap();
+
+        add_task(&mut tasks, String::from("New Task"), Priority::Medium, None);
+
+        // since we removed the `3` id the new task should have the id `4`
+        assert_eq!(tasks.last().unwrap().id(), 4);
     }
 }
