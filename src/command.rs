@@ -37,8 +37,6 @@ fn filter_tasks(
 
 #[cfg(test)]
 mod tests {
-    use core::task;
-
     use super::*;
 
     fn sample_tasks() -> Vec<Task> {
