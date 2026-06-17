@@ -1,7 +1,10 @@
+use serde::{Deserialize, Serialize};
+
 use crate::task::*;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[derive(Deserialize, Serialize)]
 pub struct TaskStore {
     next_id: u32,
     tasks: Vec<Task>,
@@ -36,48 +39,34 @@ impl TaskStore {
         self.tasks.push(task);
     }
 
-    // pub fn save(&self, path: &Path) -> Result<(), Box<dyn
+    pub fn save(&self, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        let pretty_json = serde_json::to_string_pretty(self)?;
+
+        fs::write(path, pretty_json)?;
+
+        Ok(())
+    }
+
+    pub fn load(path: &Path) -> Result<TaskStore, Box<dyn std::error::Error>> {
+        if !path.exists() {
+            return Ok(TaskStore::new());
+        }
+
+        let contents = fs::read_to_string(path)?;
+        let store: TaskStore = serde_json::from_str(&contents)?;
+
+        Ok(store)
+    }
 }
 
 fn get_storage_path() -> PathBuf {
     let home = std::env::var("HOME").expect("HOME is not set");
 
     PathBuf::from(home).join(".tsk").join("tasks.json")
-}
-
-fn load_from(path: &Path) -> Result<Vec<Task>, Box<dyn std::error::Error>> {
-    if !path.exists() {
-        return Ok(Vec::new());
-    }
-
-    let contents = fs::read_to_string(path)?;
-    let tasks: Vec<Task> = serde_json::from_str(&contents)?;
-
-    Ok(tasks)
-}
-
-fn save_to(path: &Path, tasks: &[Task]) -> Result<(), Box<dyn std::error::Error>> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-
-    let pretty_json = serde_json::to_string_pretty(tasks)?;
-
-    fs::write(path, pretty_json)?;
-
-    Ok(())
-}
-
-pub fn load_tasks() -> Result<Vec<Task>, Box<dyn std::error::Error>> {
-    let path = get_storage_path();
-
-    load_from(&path)
-}
-
-pub fn save_tasks(tasks: &[Task]) -> Result<(), Box<dyn std::error::Error>> {
-    let path = get_storage_path();
-
-    save_to(&path, tasks)
 }
 
 #[cfg(test)]
@@ -96,9 +85,9 @@ mod tests {
         // making sure that file will not exist
         let _ = fs::remove_file(&path);
 
-        let tasks = load_from(&path).unwrap();
+        let task_store = TaskStore::load(&path).unwrap();
 
-        assert!(tasks.is_empty());
+        assert!(task_store.tasks().is_empty());
     }
 
     #[test]
@@ -106,7 +95,7 @@ mod tests {
         let path = temp_path();
         fs::write(&path, b"this is not json {{{{{").unwrap();
 
-        let result = load_from(&path);
+        let result = TaskStore::load(&path);
         assert!(result.is_err());
 
         let _ = fs::remove_file(&path);
@@ -115,14 +104,17 @@ mod tests {
     #[test]
     fn save_then_load_round_trips() {
         let path = temp_path();
-        let tasks = vec![Task::new(1, String::from("Tests"), Priority::High, None)];
+        let mut task_store = TaskStore::new();
 
-        save_to(&path, &tasks).unwrap();
-        let loaded = load_from(&path).unwrap();
+        task_store.add_task(String::from("Tests"), Priority::High, None);
 
-        assert_eq!(loaded.len(), 1);
-        assert_eq!(loaded[0].title(), "Tests");
-        assert!(matches!(loaded[0].priority(), Priority::High));
+        task_store.save(&path).unwrap();
+
+        let loaded = TaskStore::load(&path).unwrap();
+
+        assert_eq!(loaded.tasks().len(), 1);
+        assert_eq!(loaded.tasks()[0].title(), "Tests");
+        assert!(matches!(loaded.tasks[0].priority(), Priority::High));
 
         let _ = fs::remove_file(&path); // cleanup
     }
@@ -130,9 +122,12 @@ mod tests {
     #[test]
     fn saved_file_is_human_readable_json() {
         let path = temp_path();
-        let tasks = vec![Task::new(1, String::from("Tests"), Priority::High, None)];
+        let mut task_store = TaskStore::new();
 
-        save_to(&path, &tasks).unwrap();
+        task_store.add_task(String::from("Tests"), Priority::High, None);
+
+        task_store.save(&path).unwrap();
+
         let contents = std::fs::read_to_string(&path).unwrap();
 
         assert!(contents.contains('\n'));
