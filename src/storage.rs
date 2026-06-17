@@ -2,6 +2,43 @@ use crate::task::*;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+pub struct TaskStore {
+    next_id: u32,
+    tasks: Vec<Task>,
+}
+
+impl TaskStore {
+    pub fn new() -> TaskStore {
+        TaskStore {
+            next_id: 1,
+            tasks: Vec::new(),
+        }
+    }
+
+    pub fn tasks(&self) -> &[Task] {
+        &self.tasks
+    }
+
+    pub fn tasks_mut(&mut self) -> &mut Vec<Task> {
+        &mut self.tasks
+    }
+
+    pub fn next_id(&mut self) -> u32 {
+        let id = self.next_id;
+        self.next_id += 1;
+        id
+    }
+
+    pub fn add_task(&mut self, title: String, priority: Priority, project: Option<String>) {
+        let id = self.next_id();
+        let task = Task::new(id, title, priority, project);
+
+        self.tasks.push(task);
+    }
+
+    // pub fn save(&self, path: &Path) -> Result<(), Box<dyn
+}
+
 fn get_storage_path() -> PathBuf {
     let home = std::env::var("HOME").expect("HOME is not set");
 
@@ -31,10 +68,6 @@ fn save_to(path: &Path, tasks: &[Task]) -> Result<(), Box<dyn std::error::Error>
     Ok(())
 }
 
-fn next_id(tasks: &[Task]) -> u32 {
-    tasks.iter().map(|t| t.id()).max().unwrap_or(0) + 1
-}
-
 pub fn load_tasks() -> Result<Vec<Task>, Box<dyn std::error::Error>> {
     let path = get_storage_path();
 
@@ -45,10 +78,6 @@ pub fn save_tasks(tasks: &[Task]) -> Result<(), Box<dyn std::error::Error>> {
     let path = get_storage_path();
 
     save_to(&path, tasks)
-}
-
-pub fn get_next_id(tasks: &[Task]) -> u32 {
-    next_id(tasks)
 }
 
 #[cfg(test)]
@@ -114,24 +143,37 @@ mod tests {
 
     #[test]
     fn next_id_is_one_for_empty_list() {
-        let tasks: Vec<Task> = vec![];
-        assert_eq!(next_id(&tasks), 1)
+        let task_store = TaskStore::new();
+        assert_eq!(task_store.next_id, 1)
     }
 
     #[test]
-    fn next_id_is_max_plus_one() {
-        let tasks = vec![
-            Task::new(1, String::from("A"), Priority::Medium, None),
-            Task::new(3, String::from("B"), Priority::Medium, None), // gap — 2 was deleted
-        ];
+    fn next_id_increments_after_each_call() {
+        let mut task_store = TaskStore::new();
 
-        assert_eq!(next_id(&tasks), 4);
+        assert_eq!(task_store.next_id(), 1);
+        assert_eq!(task_store.next_id(), 2);
     }
 
     #[test]
-    fn next_id_after_single_task() {
-        let tasks = vec![Task::new(1, String::from("Only"), Priority::Medium, None)];
+    fn add_task_increments_the_next_id() {
+        let mut task_store = TaskStore::new();
 
-        assert_eq!(next_id(&tasks), 2);
+        task_store.add_task(String::from("first"), Priority::Medium, None);
+        assert_eq!(task_store.next_id, 2);
+
+        task_store.add_task(String::from("second"), Priority::Medium, None);
+        assert_eq!(task_store.next_id, 3);
+    }
+
+    #[test]
+    fn add_task_assigns_correct_counter_value_as_next_id() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("first"), Priority::Medium, None);
+        task_store.add_task(String::from("second"), Priority::Medium, None);
+
+        assert_eq!(task_store.tasks[0].id(), 1);
+        assert_eq!(task_store.tasks[1].id(), 2);
     }
 }

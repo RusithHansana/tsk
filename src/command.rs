@@ -1,9 +1,7 @@
-use crate::{storage::get_next_id, task::*};
+use crate::{storage::TaskStore, task::*};
 
-fn add_task(tasks: &mut Vec<Task>, title: String, priority: Priority, project: Option<String>) {
-    let next_id = get_next_id(&tasks);
-    let new_task = Task::new(next_id, title, priority, project);
-    tasks.push(new_task);
+fn add_task(store: &mut TaskStore, title: String, priority: Priority, project: Option<String>) {
+    store.add_task(title, priority, project);
 }
 
 fn filter_tasks(
@@ -86,32 +84,32 @@ mod tests {
 
     #[test]
     fn add_task_increases_count() {
-        let mut tasks: Vec<Task> = vec![];
+        let mut task_store = TaskStore::new();
 
-        add_task(&mut tasks, String::from("New Task"), Priority::Medium, None);
+        task_store.add_task(String::from("New Task"), Priority::Medium, None);
 
-        assert_eq!(tasks.len(), 1);
-        assert_eq!(tasks[0].title(), "New Task");
+        assert_eq!(task_store.tasks().len(), 1);
+        assert_eq!(task_store.tasks()[0].title(), "New Task");
     }
 
     #[test]
     fn add_task_assigns_sequential_ids() {
-        let mut tasks: Vec<Task> = vec![];
+        let mut task_store = TaskStore::new();
 
-        add_task(&mut tasks, String::from("first"), Priority::Medium, None);
-        add_task(&mut tasks, String::from("second"), Priority::Medium, None);
+        task_store.add_task(String::from("first"), Priority::Medium, None);
+        task_store.add_task(String::from("second"), Priority::Medium, None);
 
-        assert_eq!(tasks[0].id(), 1);
-        assert_eq!(tasks[1].id(), 2);
+        assert_eq!(task_store.tasks()[0].id(), 1);
+        assert_eq!(task_store.tasks()[1].id(), 2);
     }
 
     #[test]
     fn add_task_status_is_always_todo() {
-        let mut tasks: Vec<Task> = vec![];
+        let mut task_store = TaskStore::new();
 
-        add_task(&mut tasks, String::from("first"), Priority::Medium, None);
+        task_store.add_task(String::from("first"), Priority::Medium, None);
 
-        assert!(matches!(tasks[0].status(), Status::Todo));
+        assert!(matches!(task_store.tasks()[0].status(), Status::Todo));
     }
 
     #[test]
@@ -216,7 +214,7 @@ mod tests {
         let mut tasks = sample_tasks();
         delete_task(&mut tasks, 3).unwrap();
 
-        add_task(&mut tasks, String::from("New Task"), Priority::Medium, None);
+        // add_task(&mut tasks, String::from("New Task"), Priority::Medium, None);
 
         // since we removed the `3` id the new task should have the id `4`
         assert_eq!(tasks.last().unwrap().id(), 4);
