@@ -35,6 +35,17 @@ fn filter_tasks(
         .collect()
 }
 
+fn mark_done(tasks: &mut [Task], id: u32) -> Result<(), String> {
+    let task = match tasks.iter_mut().find(|t| t.id() == id) {
+        Some(t) => t,
+        None => return Err(format!("Could not find a task with the id: {id}")),
+    };
+
+    task.set_status(Status::Done);
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,5 +149,34 @@ mod tests {
         let tasks = sample_tasks();
         let results = filter_tasks(&tasks, Some(String::from("nonexistent")), None, None);
         assert!(results.is_empty());
+    }
+
+    #[test]
+    fn mark_done_updates_status() {
+        let mut tasks = vec![Task::new(1, String::from("Test"), Priority::Medium, None)];
+
+        let result = mark_done(&mut tasks, 1);
+
+        assert!(result.is_ok());
+        assert!(matches!(tasks[0].status(), Status::Done));
+    }
+
+    #[test]
+    fn mark_done_returns_error_for_missing_id() {
+        let mut tasks = sample_tasks();
+
+        let result = mark_done(&mut tasks, 99);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn mark_done_does_not_affect_other_tasks() {
+        let mut tasks = sample_tasks();
+
+        mark_done(&mut tasks, 1).unwrap();
+
+        assert!(matches!(tasks[1].status(), Status::Todo));
+        assert!(matches!(tasks[2].status(), Status::Todo));
     }
 }
