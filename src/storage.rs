@@ -79,7 +79,7 @@ mod tests {
     }
 
     #[test]
-    fn load_returns_empty_vec_when_file_is_missing() {
+    fn load_returns_default_store_when_file_is_missing() {
         let path = temp_path();
 
         // making sure that file will not exist
@@ -114,7 +114,7 @@ mod tests {
 
         assert_eq!(loaded.tasks().len(), 1);
         assert_eq!(loaded.tasks()[0].title(), "Tests");
-        assert!(matches!(loaded.tasks[0].priority(), Priority::High));
+        assert!(matches!(loaded.tasks()[0].priority(), Priority::High));
 
         let _ = fs::remove_file(&path); // cleanup
     }
