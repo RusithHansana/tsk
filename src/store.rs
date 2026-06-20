@@ -39,6 +39,35 @@ impl TaskStore {
         self.tasks.push(task);
     }
 
+    pub fn filter_tasks(
+        &self,
+        project: Option<String>,
+        priority: Option<Priority>,
+        status: Option<Status>,
+    ) -> Vec<&Task> {
+        self.tasks()
+            .iter()
+            .filter(|t| {
+                let project_matches = match &project {
+                    Some(p) => t.project().as_deref() == Some(p.as_str()),
+                    None => true,
+                };
+
+                let status_matches = match &status {
+                    Some(s) => t.status() == *s,
+                    None => true,
+                };
+
+                let priority_matches = match &priority {
+                    Some(p) => t.priority() == *p,
+                    None => true,
+                };
+
+                project_matches && status_matches && priority_matches
+            })
+            .collect()
+    }
+
     pub fn save(&self, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
@@ -179,5 +208,91 @@ mod tests {
         task_store.add_task(String::from("first"), Priority::Medium, None);
 
         assert!(matches!(task_store.tasks()[0].status(), Status::Todo));
+    }
+
+    #[test]
+    fn filter_by_project() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(
+            String::from("Test 1"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+        task_store.add_task(
+            String::from("Test 2"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
+
+        let results = task_store.filter_tasks(Some(String::from("backend")), None, None);
+
+        assert_eq!(results.len(), 2);
+    }
+
+    #[test]
+    fn filter_by_status_todo() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
+
+        task_store.tasks_mut()[0].set_status(Status::Done);
+
+        let results = task_store.filter_tasks(None, None, Some(Status::Todo));
+
+        assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn filter_by_priority() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 3"), Priority::High, None);
+
+        let results = task_store.filter_tasks(None, Some(Priority::High), None);
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title(), "Test 3");
+    }
+
+    #[test]
+    fn filter_combined_project_and_status() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(
+            String::from("Test 1"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+        task_store.add_task(
+            String::from("Test 2"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
+
+        task_store.tasks_mut()[1].set_status(Status::Done);
+
+        let results =
+            task_store.filter_tasks(Some(String::from("backend")), None, Some(Status::Todo));
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title(), "Test 1");
+    }
+
+    #[test]
+    fn filter_no_match_returns_empty() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
+
+        let results = task_store.filter_tasks(Some(String::from("nonexistent")), None, None);
+        assert!(results.is_empty());
     }
 }
