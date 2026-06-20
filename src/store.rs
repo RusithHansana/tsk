@@ -78,6 +78,15 @@ impl TaskStore {
             .ok_or_else(|| format!("Could not find a task with the id: {}", id))
     }
 
+    pub fn delete_task(&mut self, id: u32) -> Result<(), String> {
+        if let Some(index) = self.tasks().iter().position(|t| t.id() == id) {
+            self.tasks_mut().remove(index);
+            Ok(())
+        } else {
+            Err(format!("Could not find a task with id: {}", id))
+        }
+    }
+
     pub fn save(&self, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
@@ -339,5 +348,49 @@ mod tests {
 
         assert!(matches!(task_store.tasks()[1].status(), Status::Todo));
         assert!(matches!(task_store.tasks()[2].status(), Status::Todo));
+    }
+
+    #[test]
+    fn delete_task_removes_it() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
+
+        let result = task_store.delete_task(2);
+
+        assert!(result.is_ok());
+        assert_eq!(task_store.tasks().len(), 2);
+        assert_eq!(task_store.tasks()[0].id(), 1);
+    }
+
+    #[test]
+    fn delete_task_returns_error_for_missing_id() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
+
+        let result = task_store.delete_task(99);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn deleted_id_is_not_reused() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
+
+        task_store.delete_task(3).unwrap();
+
+        task_store.add_task(String::from("Test 4"), Priority::Medium, None);
+
+        // since we removed the `3` id the new task should have the id `4`
+        assert_eq!(task_store.tasks().last().unwrap().id(), 4);
     }
 }
