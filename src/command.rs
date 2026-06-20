@@ -27,41 +27,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn mark_done_updates_status() {
-        let mut task_store = TaskStore::new();
-
-        task_store.add_task(String::from("Test Task"), Priority::Medium, None);
-
-        let result = mark_done(&mut task_store, 1);
-
-        assert!(result.is_ok());
-        assert!(matches!(task_store.tasks()[0].status(), Status::Done));
-    }
-
-    #[test]
-    fn mark_done_returns_error_for_missing_id() {
-        let mut task_store = TaskStore::new();
-
-        let result = mark_done(&mut task_store, 99);
-
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn mark_done_does_not_affect_other_tasks() {
-        let mut task_store = TaskStore::new();
-
-        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
-        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
-        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
-
-        mark_done(&mut task_store, 1).unwrap();
-
-        assert!(matches!(task_store.tasks()[1].status(), Status::Todo));
-        assert!(matches!(task_store.tasks()[2].status(), Status::Todo));
-    }
-
-    #[test]
     fn delete_task_removes_it() {
         let mut task_store = TaskStore::new();
 

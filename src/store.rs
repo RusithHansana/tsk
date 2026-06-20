@@ -68,6 +68,16 @@ impl TaskStore {
             .collect()
     }
 
+    pub fn mark_done(&mut self, id: u32) -> Result<(), String> {
+        self.tasks_mut()
+            .iter_mut()
+            .find(|t| t.id() == id)
+            .map(|t| {
+                t.set_status(Status::Done);
+            })
+            .ok_or_else(|| format!("Could not find a task with the id: {}", id))
+    }
+
     pub fn save(&self, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
@@ -294,5 +304,40 @@ mod tests {
 
         let results = task_store.filter_tasks(Some(String::from("nonexistent")), None, None);
         assert!(results.is_empty());
+    }
+
+    #[test]
+    fn mark_done_updates_status() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Test Task"), Priority::Medium, None);
+
+        let result = task_store.mark_done(1);
+
+        assert!(result.is_ok());
+        assert!(matches!(task_store.tasks()[0].status(), Status::Done));
+    }
+
+    #[test]
+    fn mark_done_returns_error_for_missing_id() {
+        let mut task_store = TaskStore::new();
+
+        let result = task_store.mark_done(99);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn mark_done_does_not_affect_other_tasks() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
+
+        task_store.mark_done(1).unwrap();
+
+        assert!(matches!(task_store.tasks()[1].status(), Status::Todo));
+        assert!(matches!(task_store.tasks()[2].status(), Status::Todo));
     }
 }
