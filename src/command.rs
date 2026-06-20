@@ -1,8 +1,4 @@
-use crate::{storage::TaskStore, task::*};
-
-fn add_task(store: &mut TaskStore, title: String, priority: Priority, project: Option<String>) {
-    store.add_task(title, priority, project);
-}
+use crate::{store::TaskStore, task::*};
 
 // TODO:: Refractor from here onwards
 fn filter_tasks(
@@ -60,36 +56,6 @@ fn delete_task(store: &mut TaskStore, id: u32) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn add_task_increases_count() {
-        let mut task_store = TaskStore::new();
-
-        task_store.add_task(String::from("New Task"), Priority::Medium, None);
-
-        assert_eq!(task_store.tasks().len(), 1);
-        assert_eq!(task_store.tasks()[0].title(), "New Task");
-    }
-
-    #[test]
-    fn add_task_assigns_sequential_ids() {
-        let mut task_store = TaskStore::new();
-
-        task_store.add_task(String::from("first"), Priority::Medium, None);
-        task_store.add_task(String::from("second"), Priority::Medium, None);
-
-        assert_eq!(task_store.tasks()[0].id(), 1);
-        assert_eq!(task_store.tasks()[1].id(), 2);
-    }
-
-    #[test]
-    fn add_task_status_is_always_todo() {
-        let mut task_store = TaskStore::new();
-
-        task_store.add_task(String::from("first"), Priority::Medium, None);
-
-        assert!(matches!(task_store.tasks()[0].status(), Status::Todo));
-    }
 
     #[test]
     fn filter_by_project() {

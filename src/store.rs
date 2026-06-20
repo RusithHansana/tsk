@@ -171,4 +171,13 @@ mod tests {
         assert_eq!(task_store.tasks[0].id(), 1);
         assert_eq!(task_store.tasks[1].id(), 2);
     }
+
+    #[test]
+    fn add_task_status_is_always_todo() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("first"), Priority::Medium, None);
+
+        assert!(matches!(task_store.tasks()[0].status(), Status::Todo));
+    }
 }

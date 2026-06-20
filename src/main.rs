@@ -1,5 +1,5 @@
 mod command;
-mod storage;
+mod store;
 mod task;
 fn main() {
     println!("Tsk-Manager");
