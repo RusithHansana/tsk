@@ -4,13 +4,15 @@ fn add_task(store: &mut TaskStore, title: String, priority: Priority, project: O
     store.add_task(title, priority, project);
 }
 
+// TODO:: Refractor from here onwards
 fn filter_tasks(
-    tasks: &[Task],
+    store: &TaskStore,
     project: Option<String>,
     status: Option<Status>,
     priority: Option<Priority>,
 ) -> Vec<&Task> {
-    tasks
+    store
+        .tasks()
         .iter()
         .filter(|t| {
             let project_matches = match &project {
@@ -33,8 +35,8 @@ fn filter_tasks(
         .collect()
 }
 
-fn mark_done(tasks: &mut [Task], id: u32) -> Result<(), String> {
-    let task = match tasks.iter_mut().find(|t| t.id() == id) {
+fn mark_done(store: &mut TaskStore, id: u32) -> Result<(), String> {
+    let task = match store.tasks_mut().iter_mut().find(|t| t.id() == id) {
         Some(t) => t,
         None => return Err(format!("Could not find a task with the id: {id}")),
     };
@@ -44,13 +46,13 @@ fn mark_done(tasks: &mut [Task], id: u32) -> Result<(), String> {
     Ok(())
 }
 
-fn delete_task(tasks: &mut Vec<Task>, id: u32) -> Result<(), String> {
-    let index = match tasks.iter().position(|t| t.id() == id) {
+fn delete_task(store: &mut TaskStore, id: u32) -> Result<(), String> {
+    let index = match store.tasks().iter().position(|t| t.id() == id) {
         Some(i) => i,
         None => return Err(format!("Could not find a task with the id: {id}")),
     };
 
-    tasks.remove(index);
+    store.tasks_mut().remove(index);
 
     Ok(())
 }
@@ -58,29 +60,6 @@ fn delete_task(tasks: &mut Vec<Task>, id: u32) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn sample_tasks() -> Vec<Task> {
-        vec![
-            Task::new(
-                1,
-                String::from("Build API"),
-                Priority::High,
-                Some(String::from("backend")),
-            ),
-            Task::new(
-                2,
-                String::from("Write docs"),
-                Priority::Medium,
-                Some(String::from("backend")),
-            ),
-            Task::new(
-                3,
-                String::from("Read Rust book"),
-                Priority::Low,
-                Some(String::from("learning")),
-            ),
-        ]
-    }
 
     #[test]
     fn add_task_increases_count() {
@@ -114,109 +93,170 @@ mod tests {
 
     #[test]
     fn filter_by_project() {
-        let tasks = sample_tasks();
-        let results = filter_tasks(&tasks, Some(String::from("backend")), None, None);
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(
+            String::from("Test 1"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+        task_store.add_task(
+            String::from("Test 2"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
+
+        let results = filter_tasks(&task_store, Some(String::from("backend")), None, None);
 
         assert_eq!(results.len(), 2);
     }
 
     #[test]
     fn filter_by_status_todo() {
-        let mut tasks = sample_tasks();
-        tasks[0].set_status(Status::Done);
-        let results = filter_tasks(&tasks, None, Some(Status::Todo), None);
+        let mut task_store = TaskStore::new();
 
-        assert_eq!(results.len(), 2);
+        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
+
+        task_store.tasks_mut()[0].set_status(Status::Done);
+
+        let results = filter_tasks(&task_store, None, Some(Status::Todo), None);
+
+        assert_eq!(results.len(), 1);
     }
 
     #[test]
     fn filter_by_priority() {
-        let tasks = sample_tasks();
-        let results = filter_tasks(&tasks, None, None, Some(Priority::High));
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 3"), Priority::High, None);
+
+        let results = filter_tasks(&task_store, None, None, Some(Priority::High));
 
         assert_eq!(results.len(), 1);
-        assert_eq!(results[0].title(), "Build API");
+        assert_eq!(results[0].title(), "Test 3");
     }
 
     #[test]
     fn filter_combined_project_and_status() {
-        let mut tasks = sample_tasks();
-        tasks[1].set_status(Status::Done);
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(
+            String::from("Test 1"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+        task_store.add_task(
+            String::from("Test 2"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
+
+        task_store.tasks_mut()[1].set_status(Status::Done);
+
         let results = filter_tasks(
-            &tasks,
+            &task_store,
             Some(String::from("backend")),
             Some(Status::Todo),
             None,
         );
 
         assert_eq!(results.len(), 1);
-        assert_eq!(results[0].title(), "Build API");
+        assert_eq!(results[0].title(), "Test 1");
     }
 
     #[test]
     fn filter_no_match_returns_empty() {
-        let tasks = sample_tasks();
-        let results = filter_tasks(&tasks, Some(String::from("nonexistent")), None, None);
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
+
+        let results = filter_tasks(&task_store, Some(String::from("nonexistent")), None, None);
         assert!(results.is_empty());
     }
 
     #[test]
     fn mark_done_updates_status() {
-        let mut tasks = vec![Task::new(1, String::from("Test"), Priority::Medium, None)];
+        let mut task_store = TaskStore::new();
 
-        let result = mark_done(&mut tasks, 1);
+        task_store.add_task(String::from("Test Task"), Priority::Medium, None);
+
+        let result = mark_done(&mut task_store, 1);
 
         assert!(result.is_ok());
-        assert!(matches!(tasks[0].status(), Status::Done));
+        assert!(matches!(task_store.tasks()[0].status(), Status::Done));
     }
 
     #[test]
     fn mark_done_returns_error_for_missing_id() {
-        let mut tasks = sample_tasks();
+        let mut task_store = TaskStore::new();
 
-        let result = mark_done(&mut tasks, 99);
+        let result = mark_done(&mut task_store, 99);
 
         assert!(result.is_err());
     }
 
     #[test]
     fn mark_done_does_not_affect_other_tasks() {
-        let mut tasks = sample_tasks();
+        let mut task_store = TaskStore::new();
 
-        mark_done(&mut tasks, 1).unwrap();
+        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
 
-        assert!(matches!(tasks[1].status(), Status::Todo));
-        assert!(matches!(tasks[2].status(), Status::Todo));
+        mark_done(&mut task_store, 1).unwrap();
+
+        assert!(matches!(task_store.tasks()[1].status(), Status::Todo));
+        assert!(matches!(task_store.tasks()[2].status(), Status::Todo));
     }
 
     #[test]
     fn delete_task_removes_it() {
-        let mut tasks = sample_tasks();
+        let mut task_store = TaskStore::new();
 
-        let result = delete_task(&mut tasks, 2);
+        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
+
+        let result = delete_task(&mut task_store, 2);
 
         assert!(result.is_ok());
-        assert_eq!(tasks.len(), 2);
-        assert_eq!(tasks[0].id(), 1);
+        assert_eq!(task_store.tasks().len(), 2);
+        assert_eq!(task_store.tasks()[0].id(), 1);
     }
 
     #[test]
     fn delete_task_returns_error_for_missing_id() {
-        let mut tasks = sample_tasks();
+        let mut task_store = TaskStore::new();
 
-        let result = delete_task(&mut tasks, 99);
+        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
+
+        let result = delete_task(&mut task_store, 99);
 
         assert!(result.is_err());
     }
 
     #[test]
     fn deleted_id_is_not_reused() {
-        let mut tasks = sample_tasks();
-        delete_task(&mut tasks, 3).unwrap();
+        let mut task_store = TaskStore::new();
 
-        // add_task(&mut tasks, String::from("New Task"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 1"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 2"), Priority::Medium, None);
+        task_store.add_task(String::from("Test 3"), Priority::Medium, None);
+
+        delete_task(&mut task_store, 3).unwrap();
+
+        task_store.add_task(String::from("Test 4"), Priority::Medium, None);
 
         // since we removed the `3` id the new task should have the id `4`
-        assert_eq!(tasks.last().unwrap().id(), 4);
+        assert_eq!(task_store.tasks().last().unwrap().id(), 4);
     }
 }
