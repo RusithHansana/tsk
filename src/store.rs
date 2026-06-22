@@ -68,6 +68,14 @@ impl TaskStore {
             .collect()
     }
 
+    pub fn search_tasks(&self, keyword: &str) -> Vec<&Task> {
+        let lowercase_keyword = keyword.to_lowercase();
+        self.tasks()
+            .iter()
+            .filter(|t| t.title().to_lowercase().contains(&lowercase_keyword))
+            .collect()
+    }
+
     pub fn mark_done(&mut self, id: u32) -> Result<(), String> {
         self.tasks_mut()
             .iter_mut()
@@ -119,6 +127,8 @@ fn get_storage_path() -> PathBuf {
 
 #[cfg(test)]
 mod tests {
+    use crate::task;
+
     use super::*;
 
     fn temp_path() -> PathBuf {
@@ -392,5 +402,45 @@ mod tests {
 
         // since we removed the `3` id the new task should have the id `4`
         assert_eq!(task_store.tasks().last().unwrap().id(), 4);
+    }
+
+    #[test]
+    fn search_is_case_insensitive() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Learn Rust"), Priority::Medium, None);
+        task_store.add_task(String::from("Build Api"), Priority::Medium, None);
+        task_store.add_task(String::from("Deploy"), Priority::Medium, None);
+
+        let result = task_store.search_tasks("rust");
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id(), 1);
+    }
+
+    #[test]
+    fn search_matches_partial_word() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Learn Rust"), Priority::Medium, None);
+        task_store.add_task(String::from("Build Api"), Priority::Medium, None);
+        task_store.add_task(String::from("Deploy"), Priority::Medium, None);
+
+        let result = task_store.search_tasks("rus");
+
+        assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn search_no_match_returns_empty() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Learn Rust"), Priority::Medium, None);
+        task_store.add_task(String::from("Build Api"), Priority::Medium, None);
+        task_store.add_task(String::from("Deploy"), Priority::Medium, None);
+
+        let result = task_store.search_tasks("python");
+
+        assert!(result.is_empty());
     }
 }
