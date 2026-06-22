@@ -46,8 +46,18 @@ impl Task {
         &self.title
     }
 
+    pub fn set_title(&mut self, title: String) -> &mut Self {
+        self.title = title;
+        self
+    }
+
     pub fn priority(&self) -> Priority {
         self.priority
+    }
+
+    pub fn set_priority(&mut self, priority: Priority) -> &mut Self {
+        self.priority = priority;
+        self
     }
 
     pub fn status(&self) -> Status {
@@ -61,6 +71,11 @@ impl Task {
 
     pub fn project(&self) -> Option<&str> {
         self.project.as_deref()
+    }
+
+    pub fn set_project(&mut self, project: Option<String>) -> &mut Self {
+        self.project = project;
+        self
     }
 
     pub fn created_at(&self) -> &str {
