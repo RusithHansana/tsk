@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::task::*;
-use std::convert::identity;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -122,6 +121,47 @@ impl TaskStore {
         }
     }
 
+    pub fn summary(&self) -> Summary {
+        use std::collections::HashMap;
+
+        let total = self.tasks().len();
+        let todo = self
+            .tasks()
+            .iter()
+            .filter(|t| t.status() == Status::Todo)
+            .count();
+        let done = total - todo;
+
+        // by priority
+        let mut priority_counts: HashMap<Priority, usize> = HashMap::new();
+
+        for task in self.tasks() {
+            *priority_counts.entry(task.priority()).or_insert(0) += 1;
+        }
+
+        let mut by_priority: Vec<_> = priority_counts.into_iter().collect();
+        by_priority.sort_by_key(|(p, _)| *p);
+
+        // by priority
+        let mut project_counts: HashMap<String, usize> = HashMap::new();
+
+        for task in self.tasks() {
+            let key = task.project().unwrap_or("(none)").to_string();
+            *project_counts.entry(key).or_insert(0) += 1;
+        }
+
+        let mut by_project: Vec<_> = project_counts.into_iter().collect();
+        by_project.sort_by(|a, b| b.1.cmp(&a.1));
+
+        Summary {
+            total,
+            todo,
+            done,
+            by_project,
+            by_priority,
+        }
+    }
+
     pub fn save(&self, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
@@ -154,8 +194,6 @@ fn get_storage_path() -> PathBuf {
 
 #[cfg(test)]
 mod tests {
-    use crate::task;
-
     use super::*;
 
     fn temp_path() -> PathBuf {
@@ -518,5 +556,59 @@ mod tests {
             .unwrap();
 
         assert_eq!(task_store.tasks()[0].project(), Some("backend"));
+    }
+
+    #[test]
+    fn summary_counts_total_todo_done() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Learn Rust"), Priority::High, None);
+        task_store.add_task(String::from("Build Api"), Priority::Medium, None);
+        task_store.add_task(String::from("Deploy"), Priority::Low, None);
+
+        task_store.tasks_mut()[2].set_status(Status::Done);
+
+        let result = task_store.summary();
+
+        assert_eq!(result.total, 3);
+        assert_eq!(result.todo, 2);
+        assert_eq!(result.done, 1);
+    }
+
+    #[test]
+    fn summary_counts_by_priority() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Learn Rust"), Priority::High, None);
+        task_store.add_task(String::from("Build Api"), Priority::High, None);
+        task_store.add_task(String::from("Deploy"), Priority::Low, None);
+
+        let result = task_store.summary();
+
+        assert_eq!(result.priority_count(Priority::High), 2);
+        assert_eq!(result.priority_count(Priority::Medium), 0);
+        assert_eq!(result.priority_count(Priority::Low), 1);
+    }
+
+    #[test]
+    fn summary_counts_by_project() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(
+            String::from("Learn Rust"),
+            Priority::High,
+            Some(String::from("backend")),
+        );
+        task_store.add_task(
+            String::from("Build Api"),
+            Priority::High,
+            Some(String::from("backend")),
+        );
+        task_store.add_task(String::from("Deploy"), Priority::Low, None);
+
+        let result = task_store.summary();
+
+        assert_eq!(result.project_count("backend"), 2);
+        assert_eq!(result.project_count("(none)"), 1);
     }
 }

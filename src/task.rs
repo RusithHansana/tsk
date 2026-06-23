@@ -1,14 +1,14 @@
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum Priority {
     Low,
     Medium,
     High,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum Status {
     Todo,
     Done,
@@ -80,6 +80,32 @@ impl Task {
 
     pub fn created_at(&self) -> &str {
         &self.created_at
+    }
+}
+
+pub struct Summary {
+    pub total: usize,
+    pub todo: usize,
+    pub done: usize,
+    pub by_project: Vec<(String, usize)>,
+    pub by_priority: Vec<(Priority, usize)>,
+}
+
+impl Summary {
+    pub fn priority_count(&self, priority: Priority) -> usize {
+        self.by_priority
+            .iter()
+            .find(|(p, _)| *p == priority)
+            .map(|(_, c)| *c)
+            .unwrap_or(0)
+    }
+
+    pub fn project_count(&self, project: &str) -> usize {
+        self.by_project
+            .iter()
+            .find(|(p, _)| p == project)
+            .map(|(_, c)| *c)
+            .unwrap_or(0)
     }
 }
 
