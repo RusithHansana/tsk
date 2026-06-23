@@ -68,6 +68,40 @@ impl TaskStore {
             .collect()
     }
 
+    pub fn search_tasks(&self, keyword: &str) -> Vec<&Task> {
+        let lowercase_keyword = keyword.to_lowercase();
+        self.tasks()
+            .iter()
+            .filter(|t| t.title().to_lowercase().contains(&lowercase_keyword))
+            .collect()
+    }
+
+    pub fn edit_task(
+        &mut self,
+        id: u32,
+        title: Option<String>,
+        priority: Option<Priority>,
+        project: Option<String>,
+    ) -> Result<(), String> {
+        self.tasks_mut()
+            .iter_mut()
+            .find(|t| t.id() == id)
+            .map(|t| {
+                if let Some(new_title) = title {
+                    t.set_title(new_title);
+                }
+
+                if let Some(new_priority) = priority {
+                    t.set_priority(new_priority);
+                }
+
+                if let Some(new_project) = project {
+                    t.set_project(Some(new_project));
+                }
+            })
+            .ok_or_else(|| format!("Could not find a task with id: {}", id))
+    }
+
     pub fn mark_done(&mut self, id: u32) -> Result<(), String> {
         self.tasks_mut()
             .iter_mut()
@@ -84,6 +118,47 @@ impl TaskStore {
             Ok(())
         } else {
             Err(format!("Could not find a task with id: {}", id))
+        }
+    }
+
+    pub fn summary(&self) -> Summary {
+        use std::collections::HashMap;
+
+        let total = self.tasks().len();
+        let todo = self
+            .tasks()
+            .iter()
+            .filter(|t| t.status() == Status::Todo)
+            .count();
+        let done = total - todo;
+
+        // by priority
+        let mut priority_counts: HashMap<Priority, usize> = HashMap::new();
+
+        for task in self.tasks() {
+            *priority_counts.entry(task.priority()).or_insert(0) += 1;
+        }
+
+        let mut by_priority: Vec<_> = priority_counts.into_iter().collect();
+        by_priority.sort_by_key(|(p, _)| *p);
+
+        // by priority
+        let mut project_counts: HashMap<String, usize> = HashMap::new();
+
+        for task in self.tasks() {
+            let key = task.project().unwrap_or("(none)").to_string();
+            *project_counts.entry(key).or_insert(0) += 1;
+        }
+
+        let mut by_project: Vec<_> = project_counts.into_iter().collect();
+        by_project.sort_by(|a, b| b.1.cmp(&a.1));
+
+        Summary {
+            total,
+            todo,
+            done,
+            by_project,
+            by_priority,
         }
     }
 
@@ -392,5 +467,148 @@ mod tests {
 
         // since we removed the `3` id the new task should have the id `4`
         assert_eq!(task_store.tasks().last().unwrap().id(), 4);
+    }
+
+    #[test]
+    fn search_is_case_insensitive() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Learn Rust"), Priority::Medium, None);
+        task_store.add_task(String::from("Build Api"), Priority::Medium, None);
+        task_store.add_task(String::from("Deploy"), Priority::Medium, None);
+
+        let result = task_store.search_tasks("rust");
+
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].id(), 1);
+    }
+
+    #[test]
+    fn search_matches_partial_word() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Learn Rust"), Priority::Medium, None);
+        task_store.add_task(String::from("Build Api"), Priority::Medium, None);
+        task_store.add_task(String::from("Deploy"), Priority::Medium, None);
+
+        let result = task_store.search_tasks("rus");
+
+        assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn search_no_match_returns_empty() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Learn Rust"), Priority::Medium, None);
+        task_store.add_task(String::from("Build Api"), Priority::Medium, None);
+        task_store.add_task(String::from("Deploy"), Priority::Medium, None);
+
+        let result = task_store.search_tasks("python");
+
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn edit_updates_title() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Old Title"), Priority::Medium, None);
+
+        task_store
+            .edit_task(1, Some(String::from("New Title")), None, None)
+            .unwrap();
+
+        assert_eq!(task_store.tasks()[0].title(), "New Title");
+    }
+
+    #[test]
+    fn edit_updates_priority_only() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Same Title"), Priority::Medium, None);
+
+        task_store
+            .edit_task(1, None, Some(Priority::High), None)
+            .unwrap();
+
+        assert_eq!(task_store.tasks()[0].title(), "Same Title");
+        assert!(matches!(task_store.tasks()[0].priority(), Priority::High));
+    }
+
+    #[test]
+    fn edit_returns_error_for_missing_id() {
+        let mut task_store = TaskStore::new();
+
+        let result = task_store.edit_task(99, None, Some(Priority::High), None);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn edit_updates_project() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Build API"), Priority::Medium, None);
+
+        task_store
+            .edit_task(1, None, None, Some(String::from("backend")))
+            .unwrap();
+
+        assert_eq!(task_store.tasks()[0].project(), Some("backend"));
+    }
+
+    #[test]
+    fn summary_counts_total_todo_done() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Learn Rust"), Priority::High, None);
+        task_store.add_task(String::from("Build Api"), Priority::Medium, None);
+        task_store.add_task(String::from("Deploy"), Priority::Low, None);
+
+        task_store.tasks_mut()[2].set_status(Status::Done);
+
+        let result = task_store.summary();
+
+        assert_eq!(result.total, 3);
+        assert_eq!(result.todo, 2);
+        assert_eq!(result.done, 1);
+    }
+
+    #[test]
+    fn summary_counts_by_priority() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(String::from("Learn Rust"), Priority::High, None);
+        task_store.add_task(String::from("Build Api"), Priority::High, None);
+        task_store.add_task(String::from("Deploy"), Priority::Low, None);
+
+        let result = task_store.summary();
+
+        assert_eq!(result.priority_count(Priority::High), 2);
+        assert_eq!(result.priority_count(Priority::Medium), 0);
+        assert_eq!(result.priority_count(Priority::Low), 1);
+    }
+
+    #[test]
+    fn summary_counts_by_project() {
+        let mut task_store = TaskStore::new();
+
+        task_store.add_task(
+            String::from("Learn Rust"),
+            Priority::High,
+            Some(String::from("backend")),
+        );
+        task_store.add_task(
+            String::from("Build Api"),
+            Priority::High,
+            Some(String::from("backend")),
+        );
+        task_store.add_task(String::from("Deploy"), Priority::Low, None);
+
+        let result = task_store.summary();
+
+        assert_eq!(result.project_count("backend"), 2);
+        assert_eq!(result.project_count("(none)"), 1);
     }
 }
