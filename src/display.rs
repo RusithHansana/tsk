@@ -1,6 +1,6 @@
 use crate::task::*;
 
-pub fn format_task(task: &Task) -> String {
+fn format_task(task: &Task) -> String {
     format!(
         "{:<4} {:<9} {:<7} {:<10} {}",
         task.id(),
@@ -9,6 +9,26 @@ pub fn format_task(task: &Task) -> String {
         task.project().unwrap_or("(none)"),
         task.title()
     )
+}
+
+pub fn format_task_list(tasks: Vec<&Task>) -> String {
+    if tasks.is_empty() {
+        return String::from("No tasks found.");
+    }
+
+    let mut list = format!(
+        "{:<4} {:<9} {:<7} {:<10} {}",
+        "ID", "PRIORITY", "STATUS", "PROJECT", "TITLE"
+    );
+
+    list.push('\n');
+
+    for task in tasks {
+        list.push_str(&format_task(task));
+        list.push('\n');
+    }
+
+    list
 }
 
 #[cfg(test)]
