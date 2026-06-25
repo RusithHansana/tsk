@@ -426,6 +426,13 @@ mod tests {
     }
 
     #[test]
+    fn mark_done_on_empty_list_does_not_panic() {
+        let mut task_store = TaskStore::new();
+        let result = task_store.mark_done(1);
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn delete_task_removes_it() {
         let mut task_store = TaskStore::new();
 
@@ -467,6 +474,13 @@ mod tests {
 
         // since we removed the `3` id the new task should have the id `4`
         assert_eq!(task_store.tasks().last().unwrap().id(), 4);
+    }
+
+    #[test]
+    fn delete_on_empty_list_does_not_panic() {
+        let mut task_store = TaskStore::new();
+        let result = task_store.delete_task(1);
+        assert!(result.is_err());
     }
 
     #[test]
