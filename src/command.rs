@@ -23,6 +23,16 @@ pub fn handle_list(
     format_task_list(filtered_tasks)
 }
 
+pub fn handle_search(store: &TaskStore, keyword: &str) -> String {
+    let results = store.search_tasks(&keyword);
+
+    if results.is_empty() {
+        return format!("No matching tasks for '{}'", keyword);
+    }
+
+    format_task_list(results)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -171,5 +181,121 @@ mod tests {
         assert!(result.contains("STATUS"));
         assert!(result.contains("PROJECT"));
         assert!(result.contains("TITLE"));
+    }
+
+    #[test]
+    fn handle_search_finds_matching_tasks() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+        store.add_task(
+            String::from("Test 2"),
+            Priority::High,
+            Some(String::from("backend")),
+        );
+        store.add_task(
+            String::from("Task 3"),
+            Priority::High,
+            Some(String::from("frontend")),
+        );
+
+        let results = handle_search(&store, "Rust");
+
+        assert!(results.contains("Learn Rust"));
+    }
+
+    #[test]
+    fn handle_search_returns_empty_message_when_no_matches() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Task 1"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+
+        let results = handle_search(&store, "nonexistent");
+
+        assert_eq!(results, "No matching tasks for 'nonexistent'");
+    }
+
+    #[test]
+    fn handle_search_works_for_partial_match() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+        store.add_task(
+            String::from("Test 2"),
+            Priority::High,
+            Some(String::from("backend")),
+        );
+        store.add_task(
+            String::from("Task 3"),
+            Priority::High,
+            Some(String::from("frontend")),
+        );
+
+        let results = handle_search(&store, "Rus");
+
+        assert!(results.contains("Learn Rust"));
+    }
+
+    #[test]
+    fn handle_search_is_case_insensitive() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+        store.add_task(
+            String::from("Test 2"),
+            Priority::High,
+            Some(String::from("backend")),
+        );
+        store.add_task(
+            String::from("Task 3"),
+            Priority::High,
+            Some(String::from("frontend")),
+        );
+
+        let results = handle_search(&store, "rust");
+
+        assert!(results.contains("Learn Rust"));
+    }
+
+    #[test]
+    fn handle_search_returns_all_the_matches() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+        store.add_task(
+            String::from("Build an API in Rust"),
+            Priority::High,
+            Some(String::from("backend")),
+        );
+        store.add_task(
+            String::from("Task 3"),
+            Priority::High,
+            Some(String::from("frontend")),
+        );
+
+        let results = handle_search(&store, "Rust");
+
+        assert!(results.contains("Learn Rust"));
+        assert!(results.contains("Build an API in Rust"));
     }
 }
