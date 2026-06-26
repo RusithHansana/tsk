@@ -54,6 +54,11 @@ pub fn handle_mark_done(store: &mut TaskStore, id: u32) -> Result<String, String
     Ok(format!("✓ Task {} marked as done", id))
 }
 
+pub fn handle_delete(store: &mut TaskStore, id: u32) -> Result<String, String> {
+    store.delete_task(id)?;
+
+    Ok(format!("✓ Task {} deleted", id))
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -502,6 +507,37 @@ mod tests {
         );
 
         let result = handle_mark_done(&mut store, 99);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn handle_delete_deletes_the_task_and_returns_a_message() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+
+        let result = handle_delete(&mut store, 1).unwrap();
+
+        assert_eq!(result, "✓ Task 1 deleted");
+        assert!(store.tasks().is_empty());
+    }
+
+    #[test]
+    fn handle_delete_returns_an_error_message_on_missing_id() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+
+        let result = handle_delete(&mut store, 99);
 
         assert!(result.is_err());
     }
