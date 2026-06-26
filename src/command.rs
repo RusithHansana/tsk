@@ -1,4 +1,8 @@
-use crate::{display::format_task_list, store::TaskStore, task::*};
+use crate::{
+    display::{format_summary, format_task_list},
+    store::TaskStore,
+    task::*,
+};
 
 pub fn handle_add(
     store: &mut TaskStore,
@@ -59,6 +63,13 @@ pub fn handle_delete(store: &mut TaskStore, id: u32) -> Result<String, String> {
 
     Ok(format!("✓ Task {} deleted", id))
 }
+
+pub fn handle_summary(store: &TaskStore) -> String {
+    let summary = store.summary();
+
+    format_summary(&summary)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -540,5 +551,55 @@ mod tests {
         let result = handle_delete(&mut store, 99);
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn handle_summary_displays_correct_counts() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+        store.add_task(String::from("Build a CLI"), Priority::Medium, None);
+
+        store.mark_done(1).unwrap();
+
+        let result = handle_summary(&store);
+
+        println!("{}", result);
+
+        assert!(result.contains("Total:     2"));
+        assert!(result.contains("Todo:      1"));
+        assert!(result.contains("Done:      1"));
+    }
+
+    #[test]
+    fn handle_summary_displays_empty_values_for_empty_store() {
+        let store = TaskStore::new();
+
+        let result = handle_summary(&store);
+
+        assert!(result.contains("Total:     0"));
+        assert!(result.contains("Todo:      0"));
+        assert!(result.contains("Done:      0"));
+    }
+
+    #[test]
+    fn handle_summary_contains_project_and_priority_sections() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+        store.add_task(String::from("Build a CLI"), Priority::Medium, None);
+
+        let result = handle_summary(&store);
+
+        assert!(result.contains("By Project:"));
+        assert!(result.contains("By Priority:"));
     }
 }

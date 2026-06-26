@@ -31,6 +31,32 @@ pub fn format_task_list(tasks: Vec<&Task>) -> String {
     list
 }
 
+pub fn format_summary(summary: &Summary) -> String {
+    let mut output = String::new();
+
+    let total = format!("{:<10} {}\n", "Total:", summary.total);
+    let todo = format!("{:<10} {}\n", "Todo:", summary.todo);
+    let done = format!("{:<10} {}\n", "Done:", summary.done);
+
+    output.push_str(&total);
+    output.push_str(&todo);
+    output.push_str(&done);
+
+    output.push_str("\nBy Project:\n");
+
+    for (project, count) in &summary.by_project {
+        output.push_str(&format!("  {:<10} {}\n", project, count));
+    }
+
+    output.push_str("\nBy Priority:\n");
+
+    for (priority, count) in &summary.by_priority {
+        output.push_str(&format!("  {:<10} {}\n", format!("{:?}", priority), count));
+    }
+
+    output
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
