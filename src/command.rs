@@ -33,6 +33,21 @@ pub fn handle_search(store: &TaskStore, keyword: &str) -> String {
     format_task_list(results)
 }
 
+pub fn handle_edit(
+    store: &mut TaskStore,
+    id: u32,
+    title: Option<String>,
+    priority: Option<Priority>,
+    project: Option<Option<String>>,
+) -> Result<String, String> {
+    if title.is_none() && priority.is_none() && project.is_none() {
+        return Err(String::from("Atleast one field is required"));
+    }
+
+    store.edit_task(id, title, priority, project)?;
+    Ok(format!("✓ Task {} updated", id))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -297,5 +312,160 @@ mod tests {
 
         assert!(results.contains("Learn Rust"));
         assert!(results.contains("Build an API in Rust"));
+    }
+
+    #[test]
+    fn handle_edit_updates_title() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+
+        let result =
+            handle_edit(&mut store, 1, Some(String::from("Create CLI")), None, None).unwrap();
+
+        assert_eq!(result, "✓ Task 1 updated");
+        assert_eq!(store.tasks()[0].title(), "Create CLI");
+    }
+
+    #[test]
+    fn handle_edit_updates_priority() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+
+        let result = handle_edit(&mut store, 1, None, Some(Priority::High), None).unwrap();
+
+        assert_eq!(result, "✓ Task 1 updated");
+        assert!(matches!(store.tasks()[0].priority(), Priority::High));
+    }
+
+    #[test]
+    fn handle_edit_updates_project() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+
+        let result =
+            handle_edit(&mut store, 1, None, None, Some(Some(String::from("cli")))).unwrap();
+
+        assert_eq!(result, "✓ Task 1 updated");
+        assert_eq!(store.tasks()[0].project(), Some("cli"));
+    }
+
+    #[test]
+    fn handle_edit_clears_the_project() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+
+        let result = handle_edit(&mut store, 1, None, None, Some(None)).unwrap();
+
+        assert_eq!(result, "✓ Task 1 updated");
+        assert_eq!(store.tasks()[0].project(), None);
+    }
+
+    #[test]
+    fn handle_edit_can_edit_mutliple_fields() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+
+        let result = handle_edit(
+            &mut store,
+            1,
+            Some(String::from("Build CLI")),
+            Some(Priority::High),
+            Some(Some(String::from("cli"))),
+        )
+        .unwrap();
+
+        assert_eq!(result, "✓ Task 1 updated");
+        assert_eq!(store.tasks()[0].title(), String::from("Build CLI"));
+        assert!(matches!(store.tasks()[0].priority(), Priority::High));
+        assert_eq!(store.tasks()[0].project(), Some("cli"));
+    }
+
+    #[test]
+    fn handle_edit_preserves_unchanged_edits() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+
+        let result = handle_edit(&mut store, 1, None, Some(Priority::High), None).unwrap();
+
+        assert_eq!(result, "✓ Task 1 updated");
+        assert_eq!(store.tasks()[0].title(), String::from("Learn Rust"));
+        assert!(matches!(store.tasks()[0].priority(), Priority::High));
+        assert_eq!(store.tasks()[0].project(), Some("backend"));
+    }
+
+    #[test]
+    fn handle_edit_returns_error_on_missing_id() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+
+        let result = handle_edit(
+            &mut store,
+            3,
+            Some(String::from("Build CLI")),
+            Some(Priority::Medium),
+            Some(Some(String::from("cli"))),
+        );
+
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .contains("Could not find a task with id: 3")
+        );
+    }
+
+    #[test]
+    fn handle_edit_returns_error_on_missing_fields() {
+        let mut store = TaskStore::new();
+
+        store.add_task(
+            String::from("Learn Rust"),
+            Priority::Medium,
+            Some(String::from("backend")),
+        );
+
+        let result = handle_edit(&mut store, 1, None, None, None);
+
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .contains("Atleast one field is required")
+        );
     }
 }
