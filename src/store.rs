@@ -81,7 +81,7 @@ impl TaskStore {
         id: u32,
         title: Option<String>,
         priority: Option<Priority>,
-        project: Option<String>,
+        project: Option<Option<String>>, // to handle clearing project -> None - No change, Some(None) - Clear Project, Some(Some(s)) - update
     ) -> Result<(), String> {
         self.tasks_mut()
             .iter_mut()
@@ -96,7 +96,7 @@ impl TaskStore {
                 }
 
                 if let Some(new_project) = project {
-                    t.set_project(Some(new_project));
+                    t.set_project(new_project);
                 }
             })
             .ok_or_else(|| format!("Could not find a task with id: {}", id))
@@ -566,7 +566,7 @@ mod tests {
         task_store.add_task(String::from("Build API"), Priority::Medium, None);
 
         task_store
-            .edit_task(1, None, None, Some(String::from("backend")))
+            .edit_task(1, None, None, Some(Some(String::from("backend"))))
             .unwrap();
 
         assert_eq!(task_store.tasks()[0].project(), Some("backend"));
