@@ -201,6 +201,24 @@ mod tests {
         std::env::temp_dir().join(format!("tsk_test_{:?}.json", thread_id))
     }
 
+    fn count_by_priority(summary: &Summary, priority: Priority) -> usize {
+        summary
+            .by_priority
+            .iter()
+            .find(|(p, _)| *p == priority)
+            .map(|(_, c)| *c)
+            .unwrap_or(0)
+    }
+
+    fn count_by_project(summary: &Summary, project: &str) -> usize {
+        summary
+            .by_project
+            .iter()
+            .find(|(p, _)| *p == project)
+            .map(|(_, c)| *c)
+            .unwrap_or(0)
+    }
+
     #[test]
     fn load_returns_default_store_when_file_is_missing() {
         let path = temp_path();
@@ -599,9 +617,9 @@ mod tests {
 
         let result = task_store.summary();
 
-        assert_eq!(result.priority_count(Priority::High), 2);
-        assert_eq!(result.priority_count(Priority::Medium), 0);
-        assert_eq!(result.priority_count(Priority::Low), 1);
+        assert_eq!(count_by_priority(&result, Priority::High), 2);
+        assert_eq!(count_by_priority(&result, Priority::Medium), 0);
+        assert_eq!(count_by_priority(&result, Priority::Low), 1);
     }
 
     #[test]
@@ -622,7 +640,7 @@ mod tests {
 
         let result = task_store.summary();
 
-        assert_eq!(result.project_count("backend"), 2);
-        assert_eq!(result.project_count("(none)"), 1);
+        assert_eq!(count_by_project(&result, "backend"), 2);
+        assert_eq!(count_by_project(&result, "(none)"), 1);
     }
 }

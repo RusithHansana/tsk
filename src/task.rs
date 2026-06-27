@@ -101,24 +101,6 @@ pub struct Summary {
     pub by_priority: Vec<(Priority, usize)>,
 }
 
-impl Summary {
-    pub fn priority_count(&self, priority: Priority) -> usize {
-        self.by_priority
-            .iter()
-            .find(|(p, _)| *p == priority)
-            .map(|(_, c)| *c)
-            .unwrap_or(0)
-    }
-
-    pub fn project_count(&self, project: &str) -> usize {
-        self.by_project
-            .iter()
-            .find(|(p, _)| p == project)
-            .map(|(_, c)| *c)
-            .unwrap_or(0)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
