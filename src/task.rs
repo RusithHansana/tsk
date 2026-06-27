@@ -1,16 +1,26 @@
 use chrono::prelude::*;
+use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash, ValueEnum,
+)]
 pub enum Priority {
+    #[value(name = "low")]
     Low,
+    #[value(name = "medium")]
     Medium,
+    #[value(name = "high")]
     High,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash, ValueEnum,
+)]
 pub enum Status {
+    #[value(name = "todo")]
     Todo,
+    #[value(name = "done")]
     Done,
 }
 
