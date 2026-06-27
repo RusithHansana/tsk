@@ -2,8 +2,9 @@ use crate::task::*;
 
 fn format_task(task: &Task) -> String {
     format!(
-        "{:<4} {:<9} {:<7} {:<10} {}",
+        "{:<4} {:<12} {:<9} {:<7} {:<10} {}",
         task.id(),
+        task.created_at(),
         format!("{:?}", task.priority()).to_uppercase(),
         format!("{:?}", task.status()).to_lowercase(),
         task.project().unwrap_or("(none)"),
@@ -17,8 +18,8 @@ pub fn format_task_list(tasks: Vec<&Task>) -> String {
     }
 
     let mut list = format!(
-        "{:<4} {:<9} {:<7} {:<10} {}",
-        "ID", "PRIORITY", "STATUS", "PROJECT", "TITLE"
+        "{:<4} {:<12} {:<9} {:<7} {:<10} {}",
+        "ID", "CREATED AT", "PRIORITY", "STATUS", "PROJECT", "TITLE"
     );
 
     list.push('\n');

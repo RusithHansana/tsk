@@ -1,16 +1,26 @@
 use chrono::prelude::*;
+use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash, ValueEnum,
+)]
 pub enum Priority {
+    #[value(name = "low")]
     Low,
+    #[value(name = "medium")]
     Medium,
+    #[value(name = "high")]
     High,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
+#[derive(
+    Serialize, Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash, ValueEnum,
+)]
 pub enum Status {
+    #[value(name = "todo")]
     Todo,
+    #[value(name = "done")]
     Done,
 }
 
@@ -89,24 +99,6 @@ pub struct Summary {
     pub done: usize,
     pub by_project: Vec<(String, usize)>,
     pub by_priority: Vec<(Priority, usize)>,
-}
-
-impl Summary {
-    pub fn priority_count(&self, priority: Priority) -> usize {
-        self.by_priority
-            .iter()
-            .find(|(p, _)| *p == priority)
-            .map(|(_, c)| *c)
-            .unwrap_or(0)
-    }
-
-    pub fn project_count(&self, project: &str) -> usize {
-        self.by_project
-            .iter()
-            .find(|(p, _)| p == project)
-            .map(|(_, c)| *c)
-            .unwrap_or(0)
-    }
 }
 
 #[cfg(test)]
