@@ -186,7 +186,7 @@ impl TaskStore {
     }
 }
 
-fn get_storage_path() -> PathBuf {
+pub fn get_storage_path() -> PathBuf {
     let home = std::env::var("HOME").expect("HOME is not set");
 
     PathBuf::from(home).join(".tsk").join("tasks.json")
