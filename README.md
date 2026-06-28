@@ -99,9 +99,9 @@ Whether you're managing personal todos or organizing tasks across multiple proje
 ### Add a task
 
 ```bash
-tsk add "Build the REST API"
-tsk add "Write unit tests" --priority high
-tsk add "Design database schema" --priority medium --project backend
+tsk add "Build Axum REST API" --priority high --project backend
+tsk add "Design React Frontend" --priority medium --project frontend
+tsk add "Write unit tests" --priority medium
 ```
 
 <img src="assets/add_tasks.png" alt="Add Tasks" width="800" />
@@ -111,9 +111,6 @@ tsk add "Design database schema" --priority medium --project backend
 ```bash
 tsk list
 tsk list --project backend
-tsk list --priority high
-tsk list --status todo
-tsk list --project backend --priority high --status todo
 ```
 
 <img src="assets/list_tasks.png" alt="List Tasks" width="800" />
@@ -125,7 +122,7 @@ You can also filter list results:
 ### Search tasks
 
 ```bash
-tsk search "rust"
+tsk search "axum"
 ```
 
 <img src="assets/search_tasks.png" alt="Search Tasks" width="800" />
@@ -133,9 +130,7 @@ tsk search "rust"
 ### Edit a task
 
 ```bash
-tsk edit 1 --title "Updated title"
-tsk edit 1 --priority low
-tsk edit 1 --project frontend
+tsk edit 5 --priority medium --title "Build Axum Rest API with OAuth2"
 ```
 
 <img src="assets/edit_tasks.png" alt="Edit Tasks" width="800" />
@@ -143,7 +138,7 @@ tsk edit 1 --project frontend
 ### Mark a task as done
 
 ```bash
-tsk done 1
+tsk done 5
 ```
 
 <img src="assets/mark_done_tasks.png" alt="Mark Tasks as Done" width="800" />
@@ -151,7 +146,7 @@ tsk done 1
 ### Delete a task
 
 ```bash
-tsk delete 1
+tsk delete 8
 ```
 
 <img src="assets/delete_tasks.png" alt="Delete Tasks" width="800" />
