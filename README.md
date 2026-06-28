@@ -44,7 +44,7 @@ Whether you're managing personal todos or organizing tasks across multiple proje
 
 ## Demo
 
-<!-- TODO: Add terminal screenshots or an asciicast recording showing tsk in action -->
+<img src="assets/list_tasks.png" alt="tsk in action" width="800" />
 
 ## Tech Stack
 
@@ -104,6 +104,8 @@ tsk add "Write unit tests" --priority high
 tsk add "Design database schema" --priority medium --project backend
 ```
 
+<img src="assets/add_tasks.png" alt="Add Tasks" width="800" />
+
 ### List tasks
 
 ```bash
@@ -114,11 +116,19 @@ tsk list --status todo
 tsk list --project backend --priority high --status todo
 ```
 
+<img src="assets/list_tasks.png" alt="List Tasks" width="800" />
+
+You can also filter list results:
+
+<img src="assets/filter_by_project.png" alt="Filter Tasks" width="800" />
+
 ### Search tasks
 
 ```bash
 tsk search "rust"
 ```
+
+<img src="assets/search_tasks.png" alt="Search Tasks" width="800" />
 
 ### Edit a task
 
@@ -128,11 +138,15 @@ tsk edit 1 --priority low
 tsk edit 1 --project frontend
 ```
 
+<img src="assets/edit_tasks.png" alt="Edit Tasks" width="800" />
+
 ### Mark a task as done
 
 ```bash
 tsk done 1
 ```
+
+<img src="assets/mark_done_tasks.png" alt="Mark Tasks as Done" width="800" />
 
 ### Delete a task
 
@@ -140,11 +154,15 @@ tsk done 1
 tsk delete 1
 ```
 
+<img src="assets/delete_tasks.png" alt="Delete Tasks" width="800" />
+
 ### View summary
 
 ```bash
 tsk summary
 ```
+
+<img src="assets/summary.png" alt="View Summary" width="800" />
 
 ---
 
